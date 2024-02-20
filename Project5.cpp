@@ -172,8 +172,8 @@ float	Scale;					// scaling factor
 float	Time;					// used for animation, this has a value between 0. and 1.
 int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
-
-int		SphereList;
+GLuint HorsePic;
+GLuint DogPic;
 
 
 // function prototypes:
@@ -195,6 +195,8 @@ void	Keyboard( unsigned char, int, int );
 void	MouseButton( int, int, int, int );
 void	MouseMotion( int, int );
 void	Reset( );
+//taken directly from lecture slides
+unsigned char * ReadTexture3D( char *, int *, int *, int *);
 void	Resize( int, int );
 void	Visibility( int );
 
@@ -255,7 +257,7 @@ MulArray3(float factor, float a, float b, float c )
 #include "osusphere.cpp"
 //#include "osucone.cpp"
 //#include "osutorus.cpp"
-//#include "bmptotexture.cpp"
+#include "bmptotexture.cpp"
 //#include "loadobjfile.cpp"
 #include "keytime.cpp"
 #include "glslprogram.cpp"
@@ -403,24 +405,44 @@ Display( )
 	// since we are using glScalef( ), be sure the normals get unitized:
 
 	glEnable( GL_NORMALIZE );
+	glEnable( GL_TEXTURE_2D );
 
+
+	float xmin = -1.f;	
+	float xmax =  1.f;	
+	float ymin = -1.f;
+	float ymax =  1.f;	
+	float dx = xmax - xmin;
+	float dy = ymax - ymin;
+	float z = 0.f;	
+	int numy = 128;
+	int numx = 128;
+
+	for( int iy = 0; iy < numy; iy++ )
+	{
+		glBegin( GL_QUAD_STRIP );
+		glNormal3f( 0., 0., 1. );
+		for( int ix = 0; ix <= numx; ix++ ){
+			glTexCoord2f( (float)ix/(float)numx, (float)(iy+0)/(float)numy );
+			glVertex3f( xmin + dx*(float)ix/(float)numx, ymin + dy*(float)(iy+0)/(float)numy, z );
+			glTexCoord2f( (float)ix/(float)numx, (float)(iy+1)/(float)numy );
+			glVertex3f( xmin + dx*(float)ix/(float)numx, ymin + dy*(float)(iy+1)/(float)numy, z );
+		}
+		
+		glEnd();
+	}
+
+
+// glDisable(GL_TEXTURE_2D);
 	// draw the box object by calling up its display list:
 
 	Pattern.Use( );
 
 	// set the uniform variables that will change over time:
 
-	NowS0 = 0.5f;
-	NowT0 = 0.5f;
-	NowD  = 0.25f;
-	Pattern.SetUniformVariable( (char *)"uS0", NowS0 );
-	Pattern.SetUniformVariable( (char *)"uT0", NowT0 );
-	Pattern.SetUniformVariable( (char *)"uD" , NowD  );
 
-	glCallList( SphereList );
-
-	Pattern.UnUse( );       // Pattern.Use(0);  also works
-
+Pattern.UnUse();
+	
 
 	// draw some gratuitous text that just rotates on top of the scene:
 	// i commented out the actual text-drawing calls -- put them back in if you have a use for them
@@ -717,6 +739,10 @@ InitGraphics( )
 
 	// all other setups go here, such as GLSLProgram and KeyTime setups:
 
+	
+
+
+	
 	Pattern.Init( );
 	bool valid = Pattern.Create( (char *)"pattern.vert", (char *)"pattern.frag" );
 	if( !valid )
@@ -724,16 +750,38 @@ InitGraphics( )
 	else
 		fprintf( stderr, "Pattern shader created!\n" );
 
-	// set the uniform variables that will not change:
-	
 	Pattern.Use( );
+	// set the uniform variables that will not change:
 	Pattern.SetUniformVariable( (char *)"uKa", 0.1f );
 	Pattern.SetUniformVariable( (char *)"uKd", 0.5f );
 	Pattern.SetUniformVariable( (char *)"uKs", 0.4f );
 	Pattern.SetUniformVariable( (char *)"uColor", 1.f, 0.5f, 0.f );
 	Pattern.SetUniformVariable( (char *)"uSpecularColor", 1.f, 1.f, 1.f );
 	Pattern.SetUniformVariable( (char *)"uShininess", 12.f );
+
+	
 	Pattern.UnUse( );
+	int width;
+	int height;
+
+	char*file="Horse.bmp";
+	unsigned char*texture=BmpToTexture(file,&width,&height);
+	if(texture==NULL){
+		fprintf( stderr, "Cannot open texture '%s'\n", file );
+	}
+	else{
+   		fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file, width, height );
+	}
+
+		glGenTextures(1, &HorsePic);
+		glBindTexture(GL_TEXTURE_2D, HorsePic);
+		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D( GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture );
+	
 }
 
 
@@ -750,12 +798,7 @@ InitLists( )
 
 	glutSetWindow( MainWindow );
 
-	// create the object:
-
-	SphereList = glGenLists( 1 );
-	glNewList( SphereList, GL_COMPILE );
-		OsuSphere( 1., 64, 64 );
-	glEndList( );
+	
 
 
 	// create the axes:
@@ -908,7 +951,27 @@ MouseMotion( int x, int y )
 	glutPostRedisplay( );
 }
 
-
+//taken directly from lecture slides
+unsigned char * ReadTexture3D( char *filename, int *width, int *height, int *depth) {
+	FILE *fp = fopen(filename, "rb"); 
+	if( fp == NULL )
+		return NULL;
+	
+	int nums, numt, nump;
+	
+	fread(&nums, 4, 1, fp);
+	fread(&numt, 4, 1, fp);
+	fread(&nump, 4, 1, fp);
+	
+	*width = nums; 
+	*height = numt; 
+	*depth = nump;
+	
+	unsigned char * texture = new unsigned char[ 4 * nums * numt * nump ];
+	fread(texture, 4 * nums * numt * nump, 1, fp); 
+	fclose(fp);
+	return texture;
+}
 // reset the transformations and the colors:
 // this only sets the global variables --
 // the glut main loop is responsible for redrawing the scene
