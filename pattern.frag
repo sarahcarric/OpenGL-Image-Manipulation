@@ -4,50 +4,89 @@ uniform vec3    uColor;		 // object color
 uniform vec3    uSpecularColor;	 // light color
 uniform float   uShininess;	 // specular exponent
 
-// square-equation uniform variables -- these should be set every time Display( ) is called:
-
-uniform float   uS0, uT0, uD;
 
 // in variables from the vertex shader and interpolated in the rasterizer:
-
-varying  vec3  vN;		   // normal vector
-varying  vec3  vL;		   // vector from point to light
-varying  vec3  vE;		   // vector from point to eye
 varying  vec2  vST;		   // (s,t) texture coordinates
 
+uniform float uPower;
+uniform float uRtheta;
+uniform float uMosaic;
+uniform float uBlend;
+uniform sampler2D uHorsePic;
+uniform sampler2D uDogPic;
+const float PI= 2.*3.14159265;
+const vec4 BLACK = vec4( 0., 0., 0., 1. );
+
+float
+atan2( float y, float x )
+{
+        if( x == 0. )
+        {
+                if( y >= 0. )
+                        return  PI/2.;
+                else
+                        return -PI/2.;
+        }
+        return atan(y,x);
+}
 
 void
 main( )
 {
+	
 	float s = vST.s;
 	float t = vST.t;
+	vec2 st;
+	float r;
+	float r1;
 
-	// determine the color using the square-boundary equations:
 
-	vec3 myColor = uColor;
-	if( uS0-uD/2. <= s  &&  s <= uS0+uD/2.  &&  uT0-uD/2. <= t  &&  t <= uT0+uD/2. )
+	st = vST - vec2(0.5,0.5);  // put (0,0) in the middle so that the range is -0.5 to +0.5
+	r = length(st);
+	r1 = pow(2.0*r,uPower);
+	
+
+	float whirl= atan2(st.t, st.s );
+	float whirl1 = whirl - uRtheta * r;
+	
+	st = r1 * vec2( cos(whirl1),sin(whirl1));  		
+	st += vec2(1.0,1.0);                    		// change the range to 0. to +2.
+	st *= vec2(0.5,0.5);       			// change the range to 0. to +1.
+
+	float Ar = uMosaic/2.;
+	float Br = uMosaic/2.;
+
+	int numins = int(st / uMosaic ); 
+	int numint = int(st / uMosaic); 
+	
+	float sc = float(numins) *uMosaic + Ar; 
+	float tc = float(numint) *uMosaic + Br;	// same as with the ellipses
+
+	// for this block of pixels, we are only going to sample the texture at the center:
+	st.s = sc;
+	st.t = tc;
+
+	// if s or t end up outside the range [0.,1.], paint the pixel black:
+	if( any( lessThan(st, vec2(0.0, 0.0)) ) )
 	{
-		myColor = vec3( 1., 0., 0. );;
+		gl_FragColor = BLACK;
+	}
+	else
+	{
+		if( any( greaterThan(st, vec2(1.0, 1.0)) ) )
+		{
+			gl_FragColor = BLACK;
+		}
+		else
+		{
+			//sampling the textures
+			vec3 rgb1 = texture2D( uHorsePic, st ).rgb;
+			vec3 rgb2=texture2D(uDogPic,st).rgb;
+			vec3 blendTex=mix(rgb1,rgb2,uBlend);
+			gl_FragColor = vec4( blendTex, 1. );
+		}
 	}
 
-	// apply the per-fragmewnt lighting to myColor:
 
-	vec3 Normal = normalize(vN);
-	vec3 Light  = normalize(vL);
-	vec3 Eye    = normalize(vE);
-
-	vec3 ambient = uKa * myColor;
-
-	float dd = max( dot(Normal,Light), 0. );       // only do diffuse if the light can see the point
-	vec3 diffuse = uKd * dd * myColor;
-
-	float ss = 0.;
-	if( dot(Normal,Light) > 0. )	      // only do specular if the light can see the point
-	{
-		vec3 ref = normalize(  reflect( -Light, Normal )  );
-		ss = pow( max( dot(Eye,ref),0. ), uShininess );
-	}
-	vec3 specular = uKs * ss * uSpecularColor;
-	gl_FragColor = vec4( ambient + diffuse + specular,  1. );
 }
 

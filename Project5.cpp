@@ -156,12 +156,13 @@ const float	WHITE[ ] = { 1.,1.,1.,1. };
 
 // for animation:
 
-const int MS_PER_CYCLE = 10000;		// 10000 milliseconds = 10 seconds
+const int MS_PER_CYCLE = 140000;		// 10000 milliseconds = 10 seconds
 
 // non-constant global variables:
 
 int		ActiveButton;			// current button that is down
-GLuint	AxesList;				// list to hold the axes
+GLuint	AxesList;
+GLuint 	Square;				// list to hold the axes
 int		AxesOn;					// != 0 means to draw the axes
 int		DebugOn;				// != 0 means to print debugging info
 bool	Freeze;
@@ -174,6 +175,11 @@ int		Xmouse, Ymouse;			// mouse values
 float	Xrot, Yrot;				// rotation angles in degrees
 GLuint HorsePic;
 GLuint DogPic;
+bool isFish=false;
+bool isWhirl=false;
+bool isMosiac=false;
+bool isBlend=false;
+float nowPower,nowRtheta,nowMosaic,nowBlend;
 
 
 // function prototypes:
@@ -261,7 +267,7 @@ MulArray3(float factor, float a, float b, float c )
 //#include "loadobjfile.cpp"
 #include "keytime.cpp"
 #include "glslprogram.cpp"
-
+Keytimes NowPower, NowRtheta,NowMosaic,NowBlend;
 float NowS0, NowT0, NowD;
 GLSLProgram Pattern;
 
@@ -407,41 +413,35 @@ Display( )
 	glEnable( GL_NORMALIZE );
 	glEnable( GL_TEXTURE_2D );
 
-
-	float xmin = -1.f;	
-	float xmax =  1.f;	
-	float ymin = -1.f;
-	float ymax =  1.f;	
-	float dx = xmax - xmin;
-	float dy = ymax - ymin;
-	float z = 0.f;	
-	int numy = 128;
-	int numx = 128;
-
-	for( int iy = 0; iy < numy; iy++ )
-	{
-		glBegin( GL_QUAD_STRIP );
-		glNormal3f( 0., 0., 1. );
-		for( int ix = 0; ix <= numx; ix++ ){
-			glTexCoord2f( (float)ix/(float)numx, (float)(iy+0)/(float)numy );
-			glVertex3f( xmin + dx*(float)ix/(float)numx, ymin + dy*(float)(iy+0)/(float)numy, z );
-			glTexCoord2f( (float)ix/(float)numx, (float)(iy+1)/(float)numy );
-			glVertex3f( xmin + dx*(float)ix/(float)numx, ymin + dy*(float)(iy+1)/(float)numy, z );
-		}
-		
-		glEnd();
-	}
-
-
-// glDisable(GL_TEXTURE_2D);
-	// draw the box object by calling up its display list:
+	
 
 	Pattern.Use( );
-
+	glActiveTexture( GL_TEXTURE3); // use texture unit 6	
+	glBindTexture( GL_TEXTURE_2D, HorsePic );
+	Pattern.SetUniformVariable("uHorsePic", 3);
+	
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, DogPic);
+	Pattern.SetUniformVariable("uDogPic",4);
 	// set the uniform variables that will change over time:
+ 	int msec = glutGet( GLUT_ELAPSED_TIME )  %  MS_PER_CYCLE;
+
+	//turn that into a time in seconds:
+    float nowTime = (float)msec  / 1000.0f;
+	Pattern.SetUniformVariable("uBlend",NowBlend.GetValue(nowTime));
 
 
-Pattern.UnUse();
+	Pattern.SetUniformVariable("uPower",NowPower.GetValue(nowTime));
+	printf("NowPower==%f\n",NowPower.GetValue(nowTime));
+	Pattern.SetUniformVariable("uRtheta",NowRtheta.GetValue(nowTime));
+	printf("NowRtheta==%f\n",NowRtheta.GetValue(nowTime));
+	Pattern.SetUniformVariable("uMosaic",0.03f);
+	printf("NowBlend==%f\n",NowBlend.GetValue(nowTime));
+
+
+	glCallList(Square);
+	
+	Pattern.UnUse();
 	
 
 	// draw some gratuitous text that just rotates on top of the scene:
@@ -724,6 +724,42 @@ InitGraphics( )
 
 	glutIdleFunc( Animate );
 
+	NowPower.Init( );
+        NowPower.AddTimeValue(  0.0, 0.0);
+        NowPower.AddTimeValue(  10.0,  2.0);
+        NowPower.AddTimeValue(  15.0,  5.0 );
+        NowPower.AddTimeValue(  20.0,  7.0);
+        NowPower.AddTimeValue( 25.0,  10.0);
+		NowPower.AddTimeValue( 30.0,  0.0);
+
+	NowRtheta.Init();
+		NowRtheta.AddTimeValue(  31.0, 0.0);
+        NowRtheta.AddTimeValue(  35.0,  10.0);
+        NowRtheta.AddTimeValue(  40.0, 20.0 );
+        NowRtheta.AddTimeValue(  45.0,  30.0);
+        NowRtheta.AddTimeValue( 50.0,  40.0);
+		NowRtheta.AddTimeValue( 55.0,  50.0);
+		NowRtheta.AddTimeValue( 60.0,  0.0);
+
+	// NowMosaic.Init();
+	// 	NowMosaic.AddTimeValue(  61.0, 0.0);
+    //     NowMosaic.AddTimeValue(  65.0,  0.001);
+	// 	NowMosaic.AddTimeValue(  70.0,  0.01);
+    //     NowMosaic.AddTimeValue(  75.0,  0.03);
+    //     NowMosaic.AddTimeValue( 80.0,  0.06);
+	// 	NowMosaic.AddTimeValue( 85.0,  0.0);
+
+	NowBlend.Init();
+		NowBlend.AddTimeValue(  61.0, 0.0);
+        NowBlend.AddTimeValue(  65.0,  0.2);
+        NowBlend.AddTimeValue(  70.0, 0.4);
+        NowBlend.AddTimeValue(  75.0,  0.6);
+        NowBlend.AddTimeValue( 80.0,  0.8);
+		NowBlend.AddTimeValue( 85.0,  1.0);
+		NowBlend.AddTimeValue( 90.0,  0.0);
+
+
+
 	// init the glew package (a window must be open to do this):
 
 #ifdef WIN32
@@ -760,7 +796,7 @@ InitGraphics( )
 	Pattern.SetUniformVariable( (char *)"uShininess", 12.f );
 
 	
-	Pattern.UnUse( );
+
 	int width;
 	int height;
 
@@ -781,7 +817,30 @@ InitGraphics( )
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexImage2D( GL_TEXTURE_2D, 0, 3, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texture );
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+	int width2;
+	int height2;
+
+	char*file2="Dog.bmp";
+	unsigned char*texture2=BmpToTexture(file,&width2,&height2);
+	if(texture==NULL){
+		fprintf( stderr, "Cannot open texture '%s'\n", file2);
+	}
+	else{
+   		fprintf( stderr, "Opened '%s': width = %d ; height = %d\n", file2, width2, height2);
+	}
+
+		glGenTextures(1, &DogPic);
+		glBindTexture(GL_TEXTURE_2D, DogPic);
+		glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexImage2D( GL_TEXTURE_2D, 0, 3, width2, height2, 0, GL_RGB, GL_UNSIGNED_BYTE, texture2);
 	
+		Pattern.UnUse( );
 }
 
 
@@ -809,6 +868,29 @@ InitLists( )
 			Axes( 1.5 );
 		glLineWidth( 1. );
 	glEndList( );
+
+	Square=glGenLists(1);
+
+		glNewList(Square,GL_COMPILE);
+		glBegin(GL_QUADS);
+		glTexCoord2f(0.,0.);
+		glVertex3f(-1,-1,0);
+
+		glTexCoord2f(0.,1.);
+		glVertex3f(-1,1,0);
+
+		glTexCoord2f(1.,1.);
+		glVertex3f(1,1,0);
+		
+		glTexCoord2f(1.,0.);
+		glVertex3f(1,-1,0);
+		
+
+		glEnd();
+	glEndList();
+
+
+	
 }
 
 
@@ -847,6 +929,43 @@ Keyboard( unsigned char c, int x, int y )
 			DoMainMenu( QUIT );	// will not return here
 			break;				// happy compiler
 
+		case 'i':
+		case 'I':
+			if(isFish==false){
+					isFish=true;
+				}
+				else{
+					isFish=false;
+				}
+				break;
+		case 'w':
+		case 'W':
+			if(isWhirl==false){
+				isWhirl=true;
+			}
+			else{
+				isWhirl=false;
+			}
+			break;
+
+		case 'm':
+		case 'M':
+			if(isMosiac==false){
+				isMosiac=true;
+			}
+			else{
+				isMosiac=false;
+			}
+			break;
+		case 'b':
+		case 'B':
+			if(isBlend==false){
+				isBlend=true;
+			}
+			else{
+				isBlend=false;
+			}
+			break;
 		default:
 			fprintf( stderr, "Don't know what to do with keyboard hit: '%c' (0x%0x)\n", c, c );
 	}

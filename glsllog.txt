@@ -1,4 +1,9 @@
 
-0(47) : error C1038: declaration of "d" conflicts with previous declaration at 0(37)
-0(50) : error C1038: declaration of "s" conflicts with previous declaration at 0(29)
+ERROR: 0:19: Incompatible types in initialization (and no available implicit conversion)
+ERROR: 0:20: Incompatible types in initialization (and no available implicit conversion)
+ERROR: 0:90: Use of undeclared identifier 'uHorsePic'
+ERROR: 0:91: Use of undeclared identifier 'uDogPic'
+ERROR: 0:92: Use of undeclared identifier 'rgb1'
+ERROR: 0:92: Use of undeclared identifier 'rgb2'
+ERROR: 0:93: Use of undeclared identifier 'blendTex'
 
