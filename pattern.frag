@@ -33,19 +33,10 @@ atan2( float y, float x )
 void
 main( )
 {
+	vec2 st = vST - vec2(0.5,0.5);  // put (0,0) in the middle so that the range is -0.5 to +0.5
+	float r = length(st);
+	float r1 = pow(2.0*r,uPower);
 	
-	float s = vST.s;
-	float t = vST.t;
-	vec2 st;
-	float r;
-	float r1;
-
-
-	st = vST - vec2(0.5,0.5);  // put (0,0) in the middle so that the range is -0.5 to +0.5
-	r = length(st);
-	r1 = pow(2.0*r,uPower);
-	
-
 	float whirl= atan2(st.t, st.s );
 	float whirl1 = whirl - uRtheta * r;
 	
@@ -53,15 +44,12 @@ main( )
 	st += vec2(1.0,1.0);                    		// change the range to 0. to +2.
 	st *= vec2(0.5,0.5);       			// change the range to 0. to +1.
 
-	float Ar = uMosaic/2.;
-	float Br = uMosaic/2.;
-
-	int numins = int(st / uMosaic ); 
-	int numint = int(st / uMosaic); 
+	int numins = int( st.s/uMosaic );
+	int numint = int( st.t/uMosaic );
+	float sc = float(numins)*uMosaic + uMosaic/2.;
+	float tc = float(numint)*uMosaic + uMosaic/2.;
 	
-	float sc = float(numins) *uMosaic + Ar; 
-	float tc = float(numint) *uMosaic + Br;	// same as with the ellipses
-
+	
 	// for this block of pixels, we are only going to sample the texture at the center:
 	st.s = sc;
 	st.t = tc;
@@ -86,7 +74,5 @@ main( )
 			gl_FragColor = vec4( blendTex, 1. );
 		}
 	}
-
-
 }
 
