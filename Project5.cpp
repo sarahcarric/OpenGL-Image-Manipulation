@@ -197,8 +197,6 @@ void	Keyboard( unsigned char, int, int );
 void	MouseButton( int, int, int, int );
 void	MouseMotion( int, int );
 void	Reset( );
-//taken directly from lecture slides
-unsigned char * ReadTexture3D( char *, int *, int *, int *);
 void	Resize( int, int );
 void	Visibility( int );
 
@@ -424,13 +422,26 @@ Display( )
     float nowTime = (float)msec  / 1000.0f;
 
 
+	// Pattern.SetUniformVariable("uMosaic",NowMosaic.GetValue(nowTime));
+	// printf("NowMosaic==%f\n",NowMosaic.GetValue(nowTime));
+	
 	Pattern.SetUniformVariable("uPower",NowPower.GetValue(nowTime));
+	// printf("NowPower== %f\n", NowPower.GetValue(nowTime));
+
+
+	Pattern.SetUniformVariable("uRtheta", NowRtheta.GetValue(nowTime));
+	// Pattern.SetUniformVariable("uRtheta", 40.0f);
+
+	Pattern.SetUniformVariable("uMosaic",NowMosaic.GetValue(nowTime));
 
 	Pattern.SetUniformVariable("uRtheta",NowRtheta.GetValue(nowTime));
+	// printf("NowRTheta== %f\n", NowRtheta.GetValue(nowTime));
 	
-	Pattern.SetUniformVariable("uMosaic",0.03f);
-	
+
 	Pattern.SetUniformVariable("uBlend",NowBlend.GetValue(nowTime));
+		// Pattern.SetUniformVariable("uBlend",0.5f);
+
+	// printf("NowBlend== %f\n", NowBlend.GetValue(nowTime));
 
 
 	glCallList(Square);
@@ -719,12 +730,12 @@ InitGraphics( )
 	glutIdleFunc( Animate );
 
 	NowPower.Init( );
-        NowPower.AddTimeValue(  0.0, 0.0);
+        NowPower.AddTimeValue(  0.0, 1.0);
         NowPower.AddTimeValue(  10.0,  2.0);
-        NowPower.AddTimeValue(  15.0,  5.0 );
+        NowPower.AddTimeValue(  15.0,  5.0);
         NowPower.AddTimeValue(  20.0,  7.0);
         NowPower.AddTimeValue( 25.0,  10.0);
-		NowPower.AddTimeValue( 30.0,  0.0);
+		NowPower.AddTimeValue( 30.0,  1.0);
 
 	NowRtheta.Init();
 		NowRtheta.AddTimeValue(  31.0, 0.0);
@@ -736,21 +747,20 @@ InitGraphics( )
 		NowRtheta.AddTimeValue( 60.0,  0.0);
 
 	NowMosaic.Init();
-		NowMosaic.AddTimeValue(  61.0, 0.0);
-        NowMosaic.AddTimeValue(  65.0,  0.001);
-		NowMosaic.AddTimeValue(  70.0,  0.01);
-        NowMosaic.AddTimeValue(  75.0,  0.03);
-        NowMosaic.AddTimeValue( 80.0,  0.06);
-		NowMosaic.AddTimeValue( 85.0,  0.0);
+		NowMosaic.AddTimeValue(  61.0, 0.001);
+        NowMosaic.AddTimeValue(  65.0, 0.01);
+		NowMosaic.AddTimeValue(  70.0,  0.03);
+        NowMosaic.AddTimeValue(  75.0,  0.06);
+        NowMosaic.AddTimeValue( 80.0, 0.001);
 
 	NowBlend.Init();
-		NowBlend.AddTimeValue(  90.0, 0.0);
-        NowBlend.AddTimeValue(  95.0,  0.2);
-        NowBlend.AddTimeValue(  100.0, 0.4);
-        NowBlend.AddTimeValue(  105.0,  0.6);
-        NowBlend.AddTimeValue( 110.0,  0.8);
-		NowBlend.AddTimeValue( 115.0,  1.0);
-		NowBlend.AddTimeValue( 120.0,  0.0);
+		NowBlend.AddTimeValue(  81.0, 0.0);
+        NowBlend.AddTimeValue(  85.0,  0.2);
+        NowBlend.AddTimeValue(  90.0, 0.4);
+        NowBlend.AddTimeValue(  95.0,  0.6);
+        NowBlend.AddTimeValue( 100.0,  0.8);
+		NowBlend.AddTimeValue( 105.0,  1.0);
+		NowBlend.AddTimeValue( 110.0,  0.0);
 
 
 
@@ -817,7 +827,7 @@ InitGraphics( )
 	int height2;
 
 	char*file2="Dog.bmp";
-	unsigned char*texture2=BmpToTexture(file,&width2,&height2);
+	unsigned char*texture2=BmpToTexture(file2,&width2,&height2);
 	if(texture==NULL){
 		fprintf( stderr, "Cannot open texture '%s'\n", file2);
 	}
@@ -1028,27 +1038,6 @@ MouseMotion( int x, int y )
 	glutPostRedisplay( );
 }
 
-//taken directly from lecture slides
-unsigned char * ReadTexture3D( char *filename, int *width, int *height, int *depth) {
-	FILE *fp = fopen(filename, "rb"); 
-	if( fp == NULL )
-		return NULL;
-	
-	int nums, numt, nump;
-	
-	fread(&nums, 4, 1, fp);
-	fread(&numt, 4, 1, fp);
-	fread(&nump, 4, 1, fp);
-	
-	*width = nums; 
-	*height = numt; 
-	*depth = nump;
-	
-	unsigned char * texture = new unsigned char[ 4 * nums * numt * nump ];
-	fread(texture, 4 * nums * numt * nump, 1, fp); 
-	fclose(fp);
-	return texture;
-}
 // reset the transformations and the colors:
 // this only sets the global variables --
 // the glut main loop is responsible for redrawing the scene
